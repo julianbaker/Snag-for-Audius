@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+        "target": "ES2020",
+        "module": "CommonJS",
+        "moduleResolution": "node",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "./dist",
+        "rootDir": "./",
+        "types": [
+            "chrome"
+        ],
+        "lib": [
+            "ES2020",
+            "DOM",
+            "WebWorker"
+        ],
+        "allowJs": true,
+        "resolveJsonModule": true,
+        "typeRoots": [
+            "./node_modules/@types",
+            "./types"
+        ]
+    },
+    "include": [
+        "**/*.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "services/*.ts",
+        "services/*.js"
+    ]
+}

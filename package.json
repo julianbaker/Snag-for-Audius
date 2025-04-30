@@ -1,0 +1,17 @@
+{
+    "name": "audius-artist-kit",
+    "version": "1.0.0",
+    "description": "Chrome extension for downloading Audius artist data",
+    "scripts": {
+        "build": "tsc",
+        "watch": "tsc -w",
+        "dev": "npm run watch"
+    },
+    "dependencies": {
+        "jszip": "^3.10.1"
+    },
+    "devDependencies": {
+        "@types/chrome": "^0.0.260",
+        "typescript": "^5.3.3"
+    }
+}
