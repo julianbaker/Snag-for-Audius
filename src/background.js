@@ -462,6 +462,16 @@ async function createArtistArchive(artistData) {
         zip.file(`${profile.handle} Details.md`, markdown);
         console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
 
+        // Add HTML
+        const html = generateArtistHTML(artistData);
+        console.log('Generated HTML for artist:', html?.length || 0);
+        if (html) {
+            zip.file(`${profile.handle} Details.html`, html);
+            console.log('Added HTML file to zip');
+        } else {
+            console.error('Failed to generate HTML for artist');
+        }
+
         // Download and add images
         const imagePromises = [];
 
@@ -541,6 +551,29 @@ async function createArtistArchive(artistData) {
     }
 }
 
+function formatDate(dateString) {
+    if (!dateString) return 'N/A';
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'N/A';
+
+        // Format the date in a more readable way
+        const options = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            timeZoneName: 'short'
+        };
+
+        return date.toLocaleString('en-US', options);
+    } catch (e) {
+        console.error('Error formatting date:', e);
+        return 'N/A';
+    }
+}
+
 function generateMarkdown(artistData) {
     const profile = artistData.profile;
     if (!profile) {
@@ -551,7 +584,8 @@ function generateMarkdown(artistData) {
 
     // Header with verification status
     const verifiedBadge = profile.is_verified ? ' ✓' : '';
-    md.push(`# ${profile.name || profile.handle}${verifiedBadge}`);
+    const artistUrl = `https://audius.co/${profile.handle}`;
+    md.push(`# [${profile.name || profile.handle}](${artistUrl})${verifiedBadge}`);
     md.push(`**@${profile.handle}**`);
     md.push(`User ID: \`${profile.id}\`\n`);
 
@@ -599,19 +633,131 @@ function generateMarkdown(artistData) {
 
     // Account Status
     if (profile.created_at) {
-        try {
-            const date = new Date(profile.created_at);
-            if (!isNaN(date.getTime())) {
-                md.push(`Created: ${date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`);
-            }
-        } catch (e) {
-            console.error('Error parsing date:', e);
-        }
+        md.push(`Created: ${formatDate(profile.created_at)}`);
     }
     if (profile.is_deactivated) md.push('Status: Deactivated');
     if (!profile.is_available) md.push('Status: Unavailable');
 
     return md.join('\n');
+}
+
+function generateArtistHTML(artistData) {
+    const profile = artistData.profile;
+    if (!profile) {
+        throw new Error('Missing artist profile data');
+    }
+
+    const markdown = generateMarkdown(artistData);
+    const title = `${profile.name || profile.handle} - Artist Profile`;
+
+    // Convert markdown to HTML
+    let html = markdown
+        .split('\n')
+        .map(line => {
+            // Skip empty lines
+            if (!line.trim()) return '';
+
+            // Handle headings with links (only if they start at the beginning of the line)
+            if (line.trim().startsWith('# ')) {
+                let content = line.trim().substring(2).trim();
+                // Process links in headings
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<h1>${content}</h1>`;
+            }
+            if (line.trim().startsWith('## ')) {
+                let content = line.trim().substring(3).trim();
+                // Process links in headings
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<h2>${content}</h2>`;
+            }
+            if (line.trim().startsWith('### ')) {
+                let content = line.trim().substring(4).trim();
+                // Process links in headings
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<h3>${content}</h3>`;
+            }
+            // Handle bullet points
+            if (line.startsWith('- ')) {
+                let content = line.substring(2);
+                // Process links and bold text within the list item
+                content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<li class="bullet">${content}</li>`;
+            }
+            // Handle regular text (process links and bold text)
+            line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            line = line.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+            return `<p>${line}</p>`;
+        })
+        .filter(line => line !== '') // Remove empty lines
+        .join('\n')
+        // Handle lists with proper spacing
+        .replace(/(<li class="bullet">.*?<\/li>\n?)+/g, '<ul class="bullet-list">$&</ul>')
+        // Add spacing between sections
+        .replace(/<\/h1>/g, '</h1>\n')
+        .replace(/<\/h2>/g, '</h2>\n')
+        .replace(/<\/h3>/g, '</h3>\n')
+        .replace(/<\/ul>/g, '</ul>\n')
+        .replace(/<\/p>/g, '</p>\n');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { 
+            font-family: system-ui, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        img { max-width: 100%; height: auto; }
+        ul, ol { 
+            padding-left: 20px;
+            margin: 1em 0;
+        }
+        .bullet-list {
+            list-style-type: disc;
+        }
+        li {
+            margin: 0.5em 0;
+            font-size: 1rem;
+        }
+        p {
+            margin: 1em 0;
+            font-size: 1rem;
+        }
+        a { 
+            color: #7E1BCC;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        h1, h2, h3 {
+            margin: 1em 0 0.5em 0;
+            color: #000;
+        }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.5em; }
+        h3 { font-size: 1.2em; }
+        h1 a, h2 a, h3 a {
+            color: #7E1BCC;
+            text-decoration: none;
+        }
+        h1 a:hover, h2 a:hover, h3 a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    ${html}
+</body>
+</html>`;
 }
 
 // Helper to get highest quality image URL
@@ -678,6 +824,13 @@ async function createContentArchive(contentData) {
         zip.file(`${contentName} Details.md`, markdown);
         console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
 
+        // Add HTML
+        const html = generateContentHTML(contentData);
+        if (html) {
+            zip.file(`${contentName} Details.html`, html);
+            console.log('Added HTML file to zip');
+        }
+
         // Download and add artwork
         const imagePromises = [];
         if (contentData.tracks.length === 1) {
@@ -706,7 +859,7 @@ async function createContentArchive(contentData) {
                     );
                 }
             }
-        } else if (contentData.playlists.length === 1) {
+        } else {
             // Playlist/Album
             const playlist = contentData.playlists[0];
             if (playlist.artwork) {
@@ -771,59 +924,205 @@ function generateContentMarkdown(contentData) {
     if (contentData.tracks.length === 1) {
         // Single track
         const track = contentData.tracks[0];
-        md.push(`# ${track.title || 'Untitled Track'}`);
-        md.push(`**By ${profile.name || profile.handle}**\n`);
+        const trackUrl = `https://audius.co${track.permalink || ''}`;
+        const artistUrl = `https://audius.co/${profile.handle}`;
+        md.push(`# [${track.title || 'Untitled Track'}](${trackUrl})`);
+        md.push(`**By [${profile.name || profile.handle}](${artistUrl})**\n`);
 
         // Track Info
         md.push('## Track Information');
-        md.push(`- Artist: ${profile.name || profile.handle} (@${profile.handle})`);
         md.push(`- Genre: ${track.genre || 'N/A'}`);
         md.push(`- Mood: ${track.mood || 'N/A'}`);
-        md.push(`- Release Date: ${track.release_date || 'N/A'}`);
+        md.push(`- Release Date: ${formatDate(track.release_date)}`);
         md.push(`- Duration: ${formatDuration(track.duration || 0)}\n`);
+
+        // Description
+        if (track.description) {
+            md.push('## Description');
+            // Split description by newlines and preserve them
+            const descriptionLines = track.description.split('\n');
+            descriptionLines.forEach(line => {
+                if (line.trim()) {
+                    md.push(line);
+                }
+            });
+            md.push(''); // Add extra newline after description
+        }
 
         // Stats
         md.push('## Stats');
         md.push(`- Plays: ${track.play_count?.toLocaleString() || '0'}`);
         md.push(`- Reposts: ${track.repost_count?.toLocaleString() || '0'}`);
         md.push(`- Favorites: ${track.favorite_count?.toLocaleString() || '0'}\n`);
-
-        // Links
-        md.push('## Links');
-        md.push(`- [Audius Link](https://audius.co${track.permalink || ''})`);
     } else if (contentData.playlists.length === 1) {
         // Playlist/Album
         const playlist = contentData.playlists[0];
-        md.push(`# ${playlist.playlist_name || 'Untitled Playlist'}`);
-        md.push(`**By ${profile.name || profile.handle}**\n`);
+        const playlistUrl = `https://audius.co${playlist.permalink || ''}`;
+        const artistUrl = `https://audius.co/${profile.handle}`;
+        md.push(`# [${playlist.playlist_name || 'Untitled Playlist'}](${playlistUrl})`);
+        md.push(`**By [${profile.name || profile.handle}](${artistUrl})**\n`);
+        md.push(`@${profile.handle}\n`);
 
-        // Playlist Info
-        md.push('## Playlist Information');
-        md.push(`- Type: ${playlist.is_album ? 'Album' : 'Playlist'}`);
-        md.push(`- Artist: ${profile.name || profile.handle} (@${profile.handle})`);
-        md.push(`- Track Count: ${playlist.track_count?.toLocaleString() || '0'}`);
-        md.push(`- Description: ${playlist.description || 'No description available'}\n`);
+        // Description
+        if (playlist.description) {
+            md.push('## Description');
+            // Split description by newlines and preserve them
+            const descriptionLines = playlist.description.split('\n');
+            descriptionLines.forEach(line => {
+                if (line.trim()) {
+                    md.push(line);
+                }
+            });
+            md.push(''); // Add extra newline after description
+        }
 
         // Stats
         md.push('## Stats');
-        md.push(`- Plays: ${playlist.total_play_count?.toLocaleString() || '0'}`);
         md.push(`- Reposts: ${playlist.repost_count?.toLocaleString() || '0'}`);
         md.push(`- Favorites: ${playlist.favorite_count?.toLocaleString() || '0'}\n`);
 
-        // Links
-        md.push('## Links');
-        md.push(`- [Audius Link](https://audius.co${playlist.permalink || ''})`);
-
         // Track List
         if (contentData.tracks.length > 0) {
-            md.push('\n## Track List');
+            md.push(`\n## Track List (${playlist.track_count?.toLocaleString() || '0'})`);
             contentData.tracks.forEach((track, index) => {
-                md.push(`${index + 1}. ${track.title} (${formatDuration(track.duration || 0)})`);
+                const trackUrl = `https://audius.co${track.permalink || ''}`;
+                const artistUrl = `https://audius.co/${track.user.handle}`;
+                md.push(`${index + 1}. [${track.title}](${trackUrl}) by [${track.user.name || track.user.handle}](${artistUrl}) (${formatDuration(track.duration || 0)}) • ${track.play_count?.toLocaleString() || '0'} plays`);
             });
         }
     }
 
     return md.join('\n');
+}
+
+function generateContentHTML(contentData) {
+    const markdown = generateContentMarkdown(contentData);
+    const profile = contentData.profile;
+    const title = contentData.tracks.length === 1 ?
+        `${contentData.tracks[0].title} - ${profile.name || profile.handle}` :
+        `${contentData.playlists[0].playlist_name} - ${profile.name || profile.handle}`;
+
+    // Convert markdown to HTML
+    let html = markdown
+        .split('\n')
+        .map(line => {
+            // Skip empty lines
+            if (!line.trim()) return '';
+
+            // Handle headings with links (only if they start at the beginning of the line)
+            if (line.trim().startsWith('# ')) {
+                let content = line.trim().substring(2).trim();
+                // Process links in headings
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<h1>${content}</h1>`;
+            }
+            if (line.trim().startsWith('## ')) {
+                let content = line.trim().substring(3).trim();
+                // Process links in headings
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<h2>${content}</h2>`;
+            }
+            if (line.trim().startsWith('### ')) {
+                let content = line.trim().substring(4).trim();
+                // Process links in headings
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<h3>${content}</h3>`;
+            }
+            // Handle numbered list items (track list)
+            if (/^\d+\.\s/.test(line)) {
+                let content = line.replace(/^\d+\.\s/, '');
+                // Process links and bold text within the list item
+                content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<li class="track">${content}</li>`;
+            }
+            // Handle bullet points
+            if (line.startsWith('- ')) {
+                let content = line.substring(2);
+                // Process links and bold text within the list item
+                content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+                return `<li class="bullet">${content}</li>`;
+            }
+            // Handle regular text (process links and bold text)
+            line = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            line = line.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
+            return `<p>${line}</p>`;
+        })
+        .filter(line => line !== '') // Remove empty lines
+        .join('\n')
+        // Handle lists with proper spacing
+        .replace(/(<li class="track">.*?<\/li>\n?)+/g, '<ol class="track-list">$&</ol>')
+        .replace(/(<li class="bullet">.*?<\/li>\n?)+/g, '<ul class="bullet-list">$&</ul>')
+        // Add spacing between sections
+        .replace(/<\/h1>/g, '</h1>\n')
+        .replace(/<\/h2>/g, '</h2>\n')
+        .replace(/<\/h3>/g, '</h3>\n')
+        .replace(/<\/ol>/g, '</ol>\n')
+        .replace(/<\/ul>/g, '</ul>\n')
+        .replace(/<\/p>/g, '</p>\n');
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${title}</title>
+    <style>
+        body { 
+            font-family: system-ui, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        img { max-width: 100%; height: auto; }
+        ul, ol { 
+            padding-left: 20px;
+            margin: 1em 0;
+        }
+        .track-list {
+            list-style-type: decimal;
+        }
+        .bullet-list {
+            list-style-type: disc;
+        }
+        li {
+            margin: 0.5em 0;
+            font-size: 1rem;
+        }
+        p {
+            margin: 1em 0;
+            font-size: 1rem;
+        }
+        a { 
+            color: #7E1BCC;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        h1, h2, h3 {
+            margin: 1em 0 0.5em 0;
+            color: #000;
+        }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.5em; }
+        h3 { font-size: 1.2em; }
+        h1 a, h2 a, h3 a {
+            color: #7E1BCC;
+            text-decoration: none;
+        }
+        h1 a:hover, h2 a:hover, h3 a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    ${html}
+</body>
+</html>`;
 }
 
 function formatDuration(seconds) {
