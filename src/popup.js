@@ -63,55 +63,12 @@ function updateStatus(message, type = 'loading') {
     }
 }
 
-// Convert base64 to blob
-function base64ToBlob(base64, type) {
-    try {
-        const binaryString = window.atob(base64);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-        return new Blob([bytes], { type: type });
-    } catch (error) {
-        console.error('Error converting base64 to blob:', error);
-        throw new Error('Failed to process download data');
-    }
-}
-
-// Format download filename based on content type
-function formatDownloadFilename(response, urlInfo) {
-    // Extract the last part of the path for content name
-    const getNameFromPath = (path) => {
-        const parts = path.split('/');
-        return parts[parts.length - 1];
-    };
-
-    if (urlInfo.isArtistPage) {
-        return `${urlInfo.artistHandle} - Profile Assets (Audius).zip`;
-    }
-
-    const contentName = getNameFromPath(response.data.contentId);
-
-    switch (urlInfo.contentType) {
-        case 'track':
-            return `${contentName} - Track Assets (Audius).zip`;
-        case 'playlist':
-            return `${contentName} - Playlist Assets (Audius).zip`;
-        case 'album':
-            return `${contentName} - Album Assets (Audius).zip`;
-        default:
-            return `${contentName} - Assets (Audius).zip`;
-    }
-}
-
 // Main download handler
 async function handleDownload() {
-    console.log('TEST MESSAGE - This should be visible in console');
     try {
-        updateStatus('TESTING - Please wait...');
+        updateStatus('Initializing download...');
 
         const tab = await getCurrentTab();
-        console.log('Current tab URL:', tab.url);
 
         if (!tab.url || !tab.url.includes('audius.co')) {
             throw new Error('Run this on an Audius profile, track, album, or playlist page.');
@@ -134,96 +91,25 @@ async function handleDownload() {
             console.log('Extracted artist ID from track URL:', artistId);
         }
 
-        // Get data from background script
-        const response = await new Promise((resolve, reject) => {
-            const message = {
-                type: urlInfo.isContentPage ? 'DOWNLOAD_CONTENT' : 'DOWNLOAD_ARTIST',
-                contentId: urlInfo.contentId,
-                contentType: urlInfo.contentType,
-                artistId: artistId
-            };
-            console.log('Sending download message:', message);
-
-            // Set a timeout to handle cases where the background script doesn't respond
-            const timeout = setTimeout(() => {
-                reject(new Error('Download timed out - please try again'));
-            }, 30000); // 30 second timeout
-
-            chrome.runtime.sendMessage(message, (response) => {
-                clearTimeout(timeout);
-                if (chrome.runtime.lastError) {
-                    console.error('Message sending error:', chrome.runtime.lastError);
-                    reject(new Error('Failed to communicate with background script'));
-                } else {
-                    resolve(response);
-                }
-            });
+        // Send download request to background script
+        chrome.runtime.sendMessage({
+            type: urlInfo.isContentPage ? 'DOWNLOAD_CONTENT' : 'DOWNLOAD_ARTIST',
+            contentId: urlInfo.contentId,
+            contentType: urlInfo.contentType,
+            artistId: artistId
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                console.error('Message sending error:', chrome.runtime.lastError);
+                updateStatus('Failed to start download', 'error');
+            } else if (response && response.success) {
+                updateStatus('Download started!', 'success');
+            } else {
+                updateStatus(response?.error || 'Download failed', 'error');
+            }
+            // Close popup after a short delay to show status
+            setTimeout(() => window.close(), 2000);
         });
 
-        console.log('Received download response:', response);
-
-        if (!response) {
-            throw new Error('No response received from background script');
-        }
-
-        if (response.success && response.data) {
-            // Convert base64 back to blob
-            const blob = base64ToBlob(response.data.base64, response.data.type);
-
-            if (!blob || blob.size === 0) {
-                throw new Error('Invalid download data received');
-            }
-
-            // Create download URL
-            const url = URL.createObjectURL(blob);
-            let downloadId = null;
-
-            try {
-                // Trigger download and wait for it to start
-                downloadId = await new Promise((resolve, reject) => {
-                    chrome.downloads.download({
-                        url: url,
-                        filename: formatDownloadFilename(response, urlInfo),
-                        saveAs: false  // Automatically download without prompt
-                    }, (downloadId) => {
-                        if (chrome.runtime.lastError) {
-                            reject(chrome.runtime.lastError);
-                        } else {
-                            resolve(downloadId);
-                        }
-                    });
-                });
-
-                // Wait for download to complete or fail
-                await new Promise((resolve, reject) => {
-                    const listener = (downloadDelta) => {
-                        if (downloadDelta.id === downloadId) {
-                            if (downloadDelta.state &&
-                                (downloadDelta.state.current === 'complete' ||
-                                    downloadDelta.state.current === 'interrupted')) {
-                                chrome.downloads.onChanged.removeListener(listener);
-                                if (downloadDelta.state.current === 'complete') {
-                                    resolve();
-                                } else {
-                                    reject(new Error('Download was interrupted'));
-                                }
-                            }
-                        }
-                    };
-                    chrome.downloads.onChanged.addListener(listener);
-                });
-
-                updateStatus('Snagged!', 'success');
-            } finally {
-                // Clean up the blob URL after download is complete or failed
-                URL.revokeObjectURL(url);
-            }
-
-            // Give user time to see success message
-            setTimeout(() => window.close(), 2000);
-        } else {
-            throw new Error(response?.error || 'Download failed');
-        }
     } catch (error) {
         console.error('Download error:', error);
         updateStatus(error.message || 'Download failed', 'error');

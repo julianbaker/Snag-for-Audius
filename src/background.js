@@ -303,13 +303,37 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
                 const reader = new FileReader();
                 reader.onload = function () {
                     const base64data = reader.result.split(',')[1];
-                    sendResponse({
-                        success: true,
-                        data: {
-                            base64: base64data,
-                            type: 'application/zip',
-                            contentId: message.contentId,
-                            artistId: message.artistId
+
+                    // Create a data URL from the base64 data
+                    const dataUrl = `data:application/zip;base64,${base64data}`;
+
+                    // Start download using chrome.downloads API
+                    chrome.downloads.download({
+                        url: dataUrl,
+                        filename: formatDownloadFilename({
+                            data: {
+                                contentId: message.contentId,
+                                artistId: message.artistId
+                            }
+                        }, {
+                            isArtistPage: message.type === 'DOWNLOAD_ARTIST',
+                            isContentPage: message.type === 'DOWNLOAD_CONTENT',
+                            contentType: message.contentType,
+                            artistHandle: message.artistId
+                        }),
+                        saveAs: false
+                    }, (downloadId) => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Download error:', chrome.runtime.lastError);
+                            sendResponse({
+                                success: false,
+                                error: 'Failed to start download'
+                            });
+                        } else {
+                            console.log('Download started with ID:', downloadId);
+                            sendResponse({
+                                success: true
+                            });
                         }
                     });
                 };
@@ -1199,5 +1223,32 @@ async function handleContentDownload(contentId, contentType, artistId) {
     } catch (error) {
         console.error('Content download error:', error);
         throw error;
+    }
+}
+
+// Format download filename based on content type
+function formatDownloadFilename(contentData, urlInfo) {
+    // Extract the last part of the path for content name
+    const getNameFromPath = (path) => {
+        if (!path) return 'unknown';
+        const parts = path.split('/');
+        return parts[parts.length - 1];
+    };
+
+    if (urlInfo.isArtistPage) {
+        return `${urlInfo.artistHandle} - Profile Assets (Audius).zip`;
+    }
+
+    const contentName = getNameFromPath(contentData.data.contentId);
+
+    switch (urlInfo.contentType) {
+        case 'track':
+            return `${contentName} - Track Assets (Audius).zip`;
+        case 'playlist':
+            return `${contentName} - Playlist Assets (Audius).zip`;
+        case 'album':
+            return `${contentName} - Album Assets (Audius).zip`;
+        default:
+            return `${contentName} - Assets (Audius).zip`;
     }
 } 
