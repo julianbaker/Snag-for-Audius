@@ -10,13 +10,13 @@ cp -r icons dist/
 cp -r lib dist/
 
 # Copy popup files
-cp popup.html dist/
-cp popup.js dist/
+cp src/popup.html dist/
+cp src/popup.js dist/
 
 # Copy JavaScript files
-cp background.js dist/
+cp src/background.js dist/
 cp services/*.js dist/services/
-cp content.js dist/
+cp src/content.js dist/
 
 # Make the script executable
 chmod +x build.sh 
