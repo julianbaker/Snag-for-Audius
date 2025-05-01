@@ -1,9 +1,9 @@
 # Snag (for Audius)
 
-Audius doesn’t make it easy to grab images from a page.
-Sometimes you need to. That’s why I made Snag — a tiny Chrome extension that lets you quickly grab assets from Audius artist profiles, tracks, playlists, and albums.
+Audius doesn't make it easy to grab images from a page.
+Sometimes you need to. That's why I made Snag — a tiny Chrome extension that lets you quickly grab assets from Audius artist profiles, tracks, playlists, and albums.
 
-Just click, and you’ve got a zip of everything you need.
+Just click, and you've got a zip of everything you need.
 
 ## Usage
 
@@ -25,15 +25,21 @@ Just click, and you’ve got a zip of everything you need.
 
 ### Project Structure
 ```
-├── manifest.json        # Extension configuration
-├── background.js        # Service worker for background tasks
-├── content.js          # Content script for page interaction
-├── popup.js           # Popup UI logic
-├── popup.html         # Popup UI structure
+├── src/               # Core extension files
+│   ├── popup.html     # Popup UI structure
+│   ├── popup.js       # Popup UI logic
+│   ├── background.js  # Service worker for background tasks
+│   └── content.js     # Content script for page interaction
 ├── services/          # API and service implementations
 │   ├── audiusApi.js   # Audius API integration
-├── lib/               # External libraries
-└── icons/            # Extension icons
+│   └── contentDownloadService.js  # Download service
+├── types/            # TypeScript type definitions
+├── docs/             # Documentation files
+├── tests/            # Test files
+├── lib/              # External libraries
+├── icons/            # Extension icons
+├── manifest.json     # Extension configuration
+└── build.sh         # Build script
 ```
 
 ### Building
