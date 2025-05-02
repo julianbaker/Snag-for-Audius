@@ -15,31 +15,51 @@ handle_error() {
     exit 1
 }
 
-echo "🚀 Starting build process..."
+# Read version information
+VERSION=$(jq -r '.version' version.json)
+BUILD=$(jq -r '.build' version.json)
+CURRENT_DIR="dist/current"
+EXT_DIR="$CURRENT_DIR/extension"
+ZIP_NAME="snag-for-audius-v${VERSION}.zip"
+ZIP_PATH="dist/$ZIP_NAME"
+INSTALL_GUIDE="docs/INSTALLATION.txt"
 
-# Clean dist directory
-echo "🧹 Cleaning dist directory..."
-rm -rf dist || handle_error "Failed to clean dist directory"
-mkdir -p dist/services || handle_error "Failed to create dist/services directory"
+# Clean up previous build
+rm -rf "$CURRENT_DIR"
+mkdir -p "$EXT_DIR/services" || handle_error "Failed to create build directory"
 
-# Copy static files
-echo "📦 Copying static files..."
-cp manifest.json dist/ || handle_error "Failed to copy manifest.json"
-cp -r icons dist/ || handle_error "Failed to copy icons"
-cp -r lib dist/ || handle_error "Failed to copy lib"
+# Copy extension files
+cp manifest.json "$EXT_DIR/" || handle_error "Failed to copy manifest.json"
+cp -r icons "$EXT_DIR/" || handle_error "Failed to copy icons"
+cp -r lib "$EXT_DIR/" || handle_error "Failed to copy lib"
+cp src/popup.html "$EXT_DIR/" || handle_error "Failed to copy popup.html"
+cp src/popup.js "$EXT_DIR/" || handle_error "Failed to copy popup.js"
+cp src/background.js "$EXT_DIR/" || handle_error "Failed to copy background.js"
+cp services/*.js "$EXT_DIR/services/" || handle_error "Failed to copy service files"
+cp src/content.js "$EXT_DIR/" || handle_error "Failed to copy content.js"
 
-# Copy popup files
-echo "📄 Copying popup files..."
-cp src/popup.html dist/ || handle_error "Failed to copy popup.html"
-cp src/popup.js dist/ || handle_error "Failed to copy popup.js"
+# Copy installation guide
+cp "$INSTALL_GUIDE" "$CURRENT_DIR/" || handle_error "Failed to copy installation guide"
 
-# Copy JavaScript files
-echo "📝 Copying JavaScript files..."
-cp src/background.js dist/ || handle_error "Failed to copy background.js"
-cp services/*.js dist/services/ || handle_error "Failed to copy service files"
-cp src/content.js dist/ || handle_error "Failed to copy content.js"
+# Update manifest version
+jq --arg version "$VERSION" '.version = $version' "$EXT_DIR/manifest.json" > "$EXT_DIR/manifest.tmp"
+mv "$EXT_DIR/manifest.tmp" "$EXT_DIR/manifest.json"
 
-# Make the script executable
-chmod +x build.sh || handle_error "Failed to make build.sh executable"
+# Remove any existing zip for this version
+rm -f "$ZIP_PATH"
 
-print_status "success" "Build completed successfully! 🎉" 
+# Create the zip archive (so the top-level folder is named after the version)
+cd dist || handle_error "Failed to enter dist directory"
+cp -R current "snag-for-audius-v${VERSION}" || handle_error "Failed to copy for zipping"
+zip -r "$ZIP_NAME" "snag-for-audius-v${VERSION}" > /dev/null || handle_error "Failed to create ZIP archive"
+rm -rf "snag-for-audius-v${VERSION}"
+cd ..
+
+# Increment build number
+jq --argjson new_build $((BUILD + 1)) '.build = $new_build' version.json > version.tmp
+mv version.tmp version.json
+
+print_status "success" "Build completed successfully! 🎉"
+print_status "success" "Current build: $CURRENT_DIR"
+print_status "success" "ZIP archive: $ZIP_PATH"
+print_status "success" "Build number: $BUILD" 

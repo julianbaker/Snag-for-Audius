@@ -1,0 +1,24 @@
+# How to Install This Chrome/Chromium Extension
+
+1. **Extract the ZIP**
+   - Unzip the archive. You will get a folder named like `snag-for-audius-v1.0.0`.
+   - Inside, you will find a folder called `extension`.
+
+2. **Open Chrome/Chromium**
+   - Go to `chrome://extensions` in your browser's address bar.
+
+3. **Enable Developer Mode**
+   - Toggle the switch in the top right corner labeled "Developer mode".
+
+4. **Load Unpacked**
+   - Click the "Load unpacked" button.
+   - In the file dialog, select the `extension` folder you extracted.
+
+5. **Done!**
+   - The extension should now appear in your extensions list and be ready to use.
+
+---
+
+**Troubleshooting:**
+- Make sure you select the `extension` folder, not the parent folder.
+- If you see errors, ensure all files were extracted and you are using a Chromium-based browser (Chrome, Edge, Brave, etc). 
