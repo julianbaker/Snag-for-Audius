@@ -31,16 +31,24 @@ Just click, and you've got a zip of everything you need.
 │   ├── background.js  # Service worker for background tasks
 │   └── content.js     # Content script for page interaction
 ├── services/          # API and service implementations
-│   ├── audiusApi.js   # Audius API integration
-│   └── contentDownloadService.js  # Download service
-├── types/            # TypeScript type definitions
-├── docs/             # Documentation files
-├── tests/            # Test files
+│   └── audiusApi.js   # Audius API integration
+├── types/            # TypeScript type definitions (currently empty)
+├── docs/             # Documentation files (currently empty)
+├── tests/            # Test files (currently empty)
 ├── lib/              # External libraries
 ├── icons/            # Extension icons
 ├── manifest.json     # Extension configuration
+├── package.json      # Node.js dependencies and scripts
+├── package-lock.json # Locked dependency versions
+├── tsconfig.json     # TypeScript configuration
 └── build.sh         # Build script
 ```
+
+### Development Setup
+The project uses TypeScript and Node.js for development. Key configuration files:
+- `package.json`: Defines project dependencies and scripts
+- `tsconfig.json`: Configures TypeScript compilation settings
+- `build.sh`: Handles the build process
 
 ### Building
 The project uses a simple bash script for building:
