@@ -504,6 +504,21 @@ async function downloadImageWithFallback(url, maxRetries = 3) {
     return null;
 }
 
+// Update sanitizeFilename function
+function sanitizeFilename(filename) {
+    // Split by periods to handle file extension
+    const parts = filename.split('.');
+    if (parts.length > 1) {
+        // Get the extension (last part)
+        const extension = parts.pop();
+        // Replace all periods in the remaining parts with underscores
+        const name = parts.join('.').replace(/\./g, '_');
+        return `${name}.${extension}`;
+    }
+    // If no extension, just replace all periods with underscores
+    return filename.replace(/\./g, '_');
+}
+
 async function createArtistArchive(artistData) {
     if (!artistData) {
         throw new Error('Invalid artist data structure');
@@ -522,14 +537,14 @@ async function createArtistArchive(artistData) {
 
         // Add markdown
         const markdown = generateMarkdown(artistData);
-        zip.file(`${profile.handle}_details.md`, markdown);
+        zip.file(`${sanitizeFilename(profile.handle)}_details.md`, markdown);
         console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
 
         // Add HTML
         const html = generateArtistHTML(artistData);
         console.log('Generated HTML for artist:', html?.length || 0);
         if (html) {
-            zip.file(`${profile.handle}_details.html`, html);
+            zip.file(`${sanitizeFilename(profile.handle)}_details.html`, html);
             console.log('Added HTML file to zip');
         } else {
             console.error('Failed to generate HTML for artist');
@@ -550,7 +565,7 @@ async function createArtistArchive(artistData) {
                         .then(async (blob) => {
                             if (blob) {
                                 console.log(`Adding profile picture to ZIP (${(blob.size / 1024).toFixed(1)} KB)`);
-                                await zip.file(`${profile.handle}_avatar.jpg`, blob, { binary: true });
+                                await zip.file(`${sanitizeFilename(profile.handle)}_avatar.jpg`, blob, { binary: true });
                                 imagesDownloaded = true;
                             } else {
                                 console.error('Failed to download profile picture');
@@ -575,7 +590,7 @@ async function createArtistArchive(artistData) {
                         .then(async (blob) => {
                             if (blob) {
                                 console.log(`Adding cover photo to ZIP (${(blob.size / 1024).toFixed(1)} KB)`);
-                                await zip.file(`${profile.handle}_cover.jpg`, blob, { binary: true });
+                                await zip.file(`${sanitizeFilename(profile.handle)}_cover.jpg`, blob, { binary: true });
                                 imagesDownloaded = true;
                             } else {
                                 console.error('Failed to download cover photo');
@@ -897,13 +912,13 @@ async function createContentArchive(contentData) {
         const contentName = contentData.tracks.length === 1 ?
             contentData.tracks[0].title :
             contentData.playlists[0].playlist_name;
-        zip.file(`${contentName}_details.md`, markdown);
+        zip.file(`${sanitizeFilename(contentName)}_details.md`, markdown);
         console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
 
         // Add HTML
         const html = generateContentHTML(contentData);
         if (html) {
-            zip.file(`${contentName}_details.html`, html);
+            zip.file(`${sanitizeFilename(contentName)}_details.html`, html);
             console.log('Added HTML file to zip');
         }
 
@@ -923,7 +938,7 @@ async function createContentArchive(contentData) {
                             .then(async (blob) => {
                                 if (blob) {
                                     console.log(`Adding artwork to ZIP (${(blob.size / 1024).toFixed(1)} KB)`);
-                                    await zip.file(`${track.title}_artwork.jpg`, blob, { binary: true });
+                                    await zip.file(`${sanitizeFilename(track.title)}_artwork.jpg`, blob, { binary: true });
                                     imagesDownloaded = true;
                                 } else {
                                     console.error('Failed to download artwork');
@@ -949,7 +964,7 @@ async function createContentArchive(contentData) {
                             .then(async (blob) => {
                                 if (blob) {
                                     console.log(`Adding artwork to ZIP (${(blob.size / 1024).toFixed(1)} KB)`);
-                                    await zip.file(`${playlist.playlist_name}_artwork.jpg`, blob, { binary: true });
+                                    await zip.file(`${sanitizeFilename(playlist.playlist_name)}_artwork.jpg`, blob, { binary: true });
                                     imagesDownloaded = true;
                                 } else {
                                     console.error('Failed to download artwork');
@@ -1291,31 +1306,37 @@ async function handleContentDownload(contentId, contentType, artistId) {
     }
 }
 
-// Format download filename based on content type
+// Update formatDownloadFilename function
 function formatDownloadFilename(contentData, urlInfo) {
     // Extract the last part of the path for content name
     const getNameFromPath = (path) => {
         if (!path) return 'unknown';
         const parts = path.split('/');
-        return parts[parts.length - 1];
+        return sanitizeFilename(parts[parts.length - 1]);
     };
 
+    let filename;
     if (urlInfo.isArtistPage) {
-        return `${urlInfo.artistHandle} - profile assets [snagged from audius].zip`;
+        filename = `${urlInfo.artistHandle} - profile assets [snagged from audius].zip`;
+    } else {
+        const contentName = getNameFromPath(contentData.data.contentId);
+        switch (urlInfo.contentType) {
+            case 'track':
+                filename = `${contentName} - track assets [snagged from audius].zip`;
+                break;
+            case 'playlist':
+                filename = `${contentName} - playlist assets [snagged from audius].zip`;
+                break;
+            case 'album':
+                filename = `${contentName} - album assets [snagged from audius].zip`;
+                break;
+            default:
+                filename = `${contentName} - assets [snagged from audius].zip`;
+        }
     }
 
-    const contentName = getNameFromPath(contentData.data.contentId);
-
-    switch (urlInfo.contentType) {
-        case 'track':
-            return `${contentName} - track assets [snagged from audius].zip`;
-        case 'playlist':
-            return `${contentName} - playlist assets [snagged from audius].zip`;
-        case 'album':
-            return `${contentName} - album assets [snagged from audius].zip`;
-        default:
-            return `${contentName} - assets [snagged from audius].zip`;
-    }
+    // Sanitize the entire filename
+    return sanitizeFilename(filename);
 }
 
 // Initialize icon states when extension starts
