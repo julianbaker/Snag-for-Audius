@@ -7,8 +7,7 @@
         "tabs",
         "downloads",
         "activeTab",
-        "notifications",
-        "scripting"
+        "notifications"
     ],
     "host_permissions": [
         "*://*.audius.co/*",
