@@ -11,6 +11,9 @@ const API_HOSTS = [
 // Initialize services
 const audiusApi = new AudiusApiService();
 
+// Add development flag at the top of the file
+const SKIP_MD_FILE = true; // Set to true to exclude markdown files from ZIP
+
 // Wait for service worker initialization
 self.addEventListener('install', function (event) {
     event.waitUntil(self.skipWaiting());
@@ -535,12 +538,14 @@ async function createArtistArchive(artistData) {
     try {
         console.log('Creating archive for:', profile.handle);
 
-        // Add markdown
-        const markdown = generateMarkdown(artistData);
-        zip.file(`${sanitizeFilename(profile.handle)}_details.md`, markdown);
-        console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
+        // Add markdown only if not in dev mode
+        if (!SKIP_MD_FILE) {
+            const markdown = generateMarkdown(artistData);
+            zip.file(`${sanitizeFilename(profile.handle)}_details.md`, markdown);
+            console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
+        }
 
-        // Add HTML
+        // Add HTML (always add HTML)
         const html = generateArtistHTML(artistData);
         console.log('Generated HTML for artist:', html?.length || 0);
         if (html) {
@@ -665,56 +670,54 @@ function generateMarkdown(artistData) {
     const artistUrl = `https://audius.co/${profile.handle}`;
     md.push(`# [${profile.name || profile.handle}](${artistUrl})${verifiedBadge}`);
     md.push(`**@${profile.handle}**`);
-    md.push(`User ID: \`${profile.id}\`\n`);
+    md.push(`**User ID:** ${profile.id}\n`);
+    md.push('---\n');
 
     // Basic Info
     if (profile.bio) {
         md.push('## Bio');
         md.push(profile.bio + '\n');
+        md.push('---\n');
     }
 
     if (profile.location) {
         md.push('## Location');
         md.push(profile.location + '\n');
+        md.push('---\n');
     }
 
     // Stats
     md.push('## Stats');
-    md.push(`- Followers: ${profile.follower_count?.toLocaleString() || '0'}`);
-    md.push(`- Following: ${profile.followee_count?.toLocaleString() || '0'}`);
-    md.push(`- Tracks: ${profile.track_count?.toLocaleString() || '0'}`);
-    md.push(`- Playlists: ${profile.playlist_count?.toLocaleString() || '0'}`);
-    md.push(`- Albums: ${profile.album_count?.toLocaleString() || '0'}`);
-    md.push(`- Reposts: ${profile.repost_count?.toLocaleString() || '0'}`);
-    md.push(`- Supporters: ${profile.supporter_count?.toLocaleString() || '0'}`);
-    md.push(`- Supporting: ${profile.supporting_count?.toLocaleString() || '0'}\n`);
+    md.push(`**Followers:** ${profile.follower_count?.toLocaleString() || '0'}`);
+    md.push(`**Following:** ${profile.followee_count?.toLocaleString() || '0'}`);
+    md.push(`**Tracks:** ${profile.track_count?.toLocaleString() || '0'}`);
+    md.push(`**Playlists:** ${profile.playlist_count?.toLocaleString() || '0'}`);
+    md.push(`**Albums:** ${profile.album_count?.toLocaleString() || '0'}`);
+    md.push(`**Reposts:** ${profile.repost_count?.toLocaleString() || '0'}`);
+    md.push(`**Supporters:** ${profile.supporter_count?.toLocaleString() || '0'}`);
+    md.push(`**Supporting:** ${profile.supporting_count?.toLocaleString() || '0'}\n`);
+    md.push('---\n');
 
     // Social Links
     const socialLinks = [];
-    if (profile.twitter_handle) socialLinks.push(`- Twitter: [@${profile.twitter_handle}](https://twitter.com/${profile.twitter_handle})`);
-    if (profile.instagram_handle) socialLinks.push(`- Instagram: [@${profile.instagram_handle}](https://instagram.com/${profile.instagram_handle})`);
-    if (profile.tiktok_handle) socialLinks.push(`- TikTok: [@${profile.tiktok_handle}](https://tiktok.com/@${profile.tiktok_handle})`);
-    if (profile.website) socialLinks.push(`- Website: [${profile.website}](${profile.website})`);
-    if (profile.donation) socialLinks.push(`- Donation: [${profile.donation}](${profile.donation})`);
+    if (profile.twitter_handle) socialLinks.push(`**Twitter:** [@${profile.twitter_handle}](https://twitter.com/${profile.twitter_handle})`);
+    if (profile.instagram_handle) socialLinks.push(`**Instagram:** [@${profile.instagram_handle}](https://instagram.com/${profile.instagram_handle})`);
+    if (profile.tiktok_handle) socialLinks.push(`**TikTok:** [@${profile.tiktok_handle}](https://tiktok.com/@${profile.tiktok_handle})`);
+    if (profile.website) socialLinks.push(`**Website:** [${profile.website}](${profile.website})`);
+    if (profile.donation) socialLinks.push(`**Donation:** [${profile.donation}](${profile.donation})`);
 
     if (socialLinks.length > 0) {
         md.push('## Social Links');
         md.push(socialLinks.join('\n') + '\n');
+        md.push('---\n');
     }
 
     // Wallets
     md.push('## Wallets');
-    if (profile.erc_wallet) md.push(`- ERC: \`${profile.erc_wallet}\``);
-    if (profile.spl_wallet) md.push(`- SPL: \`${profile.spl_wallet}\``);
-    if (profile.spl_usdc_payout_wallet) md.push(`- SPL USDC: \`${profile.spl_usdc_payout_wallet}\``);
-    md.push('');
-
-    // Account Status
-    if (profile.created_at) {
-        md.push(`Created: ${formatDate(profile.created_at)}`);
-    }
-    if (profile.is_deactivated) md.push('Status: Deactivated');
-    if (!profile.is_available) md.push('Status: Unavailable');
+    if (profile.erc_wallet) md.push(`**ERC:** ${profile.erc_wallet}`);
+    if (profile.spl_wallet) md.push(`**SPL:** ${profile.spl_wallet}`);
+    if (profile.spl_usdc_payout_wallet) md.push(`**SPL USDC:** ${profile.spl_usdc_payout_wallet}`);
+    md.push('\n---\n');
 
     // Add footer
     md.push('');
@@ -907,17 +910,22 @@ async function createContentArchive(contentData) {
     try {
         console.log('Creating content archive for:', contentData.profile.handle);
 
-        // Add markdown
-        const markdown = generateContentMarkdown(contentData);
-        const contentName = contentData.tracks.length === 1 ?
-            contentData.tracks[0].title :
-            contentData.playlists[0].playlist_name;
-        zip.file(`${sanitizeFilename(contentName)}_details.md`, markdown);
-        console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
+        // Add markdown only if not in dev mode
+        if (!SKIP_MD_FILE) {
+            const markdown = generateContentMarkdown(contentData);
+            const contentName = contentData.tracks.length === 1 ?
+                contentData.tracks[0].title :
+                contentData.playlists[0].playlist_name;
+            zip.file(`${sanitizeFilename(contentName)}_details.md`, markdown);
+            console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
+        }
 
-        // Add HTML
+        // Add HTML (always add HTML)
         const html = generateContentHTML(contentData);
         if (html) {
+            const contentName = contentData.tracks.length === 1 ?
+                contentData.tracks[0].title :
+                contentData.playlists[0].playlist_name;
             zip.file(`${sanitizeFilename(contentName)}_details.html`, html);
             console.log('Added HTML file to zip');
         }
@@ -1019,13 +1027,15 @@ function generateContentMarkdown(contentData) {
         const artistUrl = `https://audius.co/${profile.handle}`;
         md.push(`# [${track.title || 'Untitled Track'}](${trackUrl})`);
         md.push(`**By [${profile.name || profile.handle}](${artistUrl})**\n`);
+        md.push('---\n');
 
         // Track Info
         md.push('## Track Information');
-        md.push(`- Genre: ${track.genre || 'N/A'}`);
-        md.push(`- Mood: ${track.mood || 'N/A'}`);
-        md.push(`- Release Date: ${formatDate(track.release_date)}`);
-        md.push(`- Duration: ${formatDuration(track.duration || 0)}\n`);
+        md.push(`**Genre:** ${track.genre || 'N/A'}`);
+        md.push(`**Mood:** ${track.mood || 'N/A'}`);
+        md.push(`**Release Date:** ${formatDate(track.release_date)}`);
+        md.push(`**Duration:** ${formatDuration(track.duration || 0)}\n`);
+        md.push('---\n');
 
         // Description
         if (track.description) {
@@ -1037,14 +1047,15 @@ function generateContentMarkdown(contentData) {
                     md.push(line);
                 }
             });
-            md.push(''); // Add extra newline after description
+            md.push('\n---\n');
         }
 
         // Stats
         md.push('## Stats');
-        md.push(`- Plays: ${track.play_count?.toLocaleString() || '0'}`);
-        md.push(`- Reposts: ${track.repost_count?.toLocaleString() || '0'}`);
-        md.push(`- Favorites: ${track.favorite_count?.toLocaleString() || '0'}\n`);
+        md.push(`**Plays:** ${track.play_count?.toLocaleString() || '0'}`);
+        md.push(`**Reposts:** ${track.repost_count?.toLocaleString() || '0'}`);
+        md.push(`**Favorites:** ${track.favorite_count?.toLocaleString() || '0'}\n`);
+        md.push('---\n');
     } else if (contentData.playlists.length === 1) {
         // Playlist/Album
         const playlist = contentData.playlists[0];
@@ -1053,6 +1064,7 @@ function generateContentMarkdown(contentData) {
         md.push(`# [${playlist.playlist_name || 'Untitled Playlist'}](${playlistUrl})`);
         md.push(`**By [${profile.name || profile.handle}](${artistUrl})**\n`);
         md.push(`@${profile.handle}\n`);
+        md.push('---\n');
 
         // Description
         if (playlist.description) {
@@ -1064,13 +1076,14 @@ function generateContentMarkdown(contentData) {
                     md.push(line);
                 }
             });
-            md.push(''); // Add extra newline after description
+            md.push('\n---\n');
         }
 
         // Stats
         md.push('## Stats');
-        md.push(`- Reposts: ${playlist.repost_count?.toLocaleString() || '0'}`);
-        md.push(`- Favorites: ${playlist.favorite_count?.toLocaleString() || '0'}\n`);
+        md.push(`**Reposts:** ${playlist.repost_count?.toLocaleString() || '0'}`);
+        md.push(`**Favorites:** ${playlist.favorite_count?.toLocaleString() || '0'}\n`);
+        md.push('---\n');
 
         // Track List
         if (contentData.tracks.length > 0) {
@@ -1080,6 +1093,7 @@ function generateContentMarkdown(contentData) {
                 const artistUrl = `https://audius.co/${track.user.handle}`;
                 md.push(`${index + 1}. [${track.title}](${trackUrl}) by [${track.user.name || track.user.handle}](${artistUrl}) (${formatDuration(track.duration || 0)}) • ${track.play_count?.toLocaleString() || '0'} plays`);
             });
+            md.push('\n---\n');
         }
     }
 
