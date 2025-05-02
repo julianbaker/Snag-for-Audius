@@ -5,8 +5,7 @@ Sometimes you need to. That's why I made Snag — a tiny Chrome extension that l
 
 Just click, and you've got a zip of everything you need.
 
-<img src="badgeAudius@2x.png" alt="Powered by Audius" width="240"/>
-
+[<img src="badgeAudius@2x.png" alt="Powered by Audius" width="240"/>](https://audius.co)
 
 ## Usage
 
