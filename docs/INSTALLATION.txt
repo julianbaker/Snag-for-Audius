@@ -6,7 +6,8 @@
    - Unzip the archive. You will get a folder named like `snag-for-audius-v1.x.x`.
    - Inside, you will find a folder named `extension`.
 
-2. **Open Chrome/Chromium**
+2. **Open Chrome/Chromium Browser**
+   - Ensure you are using a Chromium-based browser (Chrome, Arc, Edge, Brave, etc). 
    - Go to `chrome://extensions` in your browser's address bar.
 
 3. **Enable Developer Mode**
@@ -20,7 +21,4 @@
 5. **Done!**
    - The extension should now appear in your list of extensions, ready to use.
 
----
 
-**Troubleshooting:**
-- Ensure you are using a Chromium-based browser (Chrome, Arc, Edge, Brave, etc). 
