@@ -1,9 +1,9 @@
 # Snag (for Audius)
 
 Audius doesn't make it easy to grab images from a page.
-Sometimes you need to. That's why I made Snag — a tiny Chrome extension that lets you quickly grab assets from Audius artist profiles, tracks, playlists, and albums.
+Sometimes you need to. That's why I made Snag, a lightweight Chrome extension that lets you quickly grab assets from Audius artist profiles, tracks, playlists, and albums.
 
-Just click, and you've got a zip of everything you need.
+Just click, and you'll have a zip of everything you need.
 
 [<img src="badgeAudius@2x.png" alt="Powered by Audius" width="240"/>](https://audius.co)
 
