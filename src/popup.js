@@ -1,3 +1,4 @@
+// popup.js
 // Get current tab to check if we're on an artist page
 async function getCurrentTab() {
     try {
@@ -102,7 +103,7 @@ async function handleDownload() {
                 console.error('Message sending error:', chrome.runtime.lastError);
                 updateStatus('Failed to start download', 'error');
             } else if (response && response.success) {
-                updateStatus('Download started!', 'success');
+                updateStatus('Snagged!', 'success');
             } else {
                 updateStatus(response?.error || 'Download failed', 'error');
             }

@@ -1,3 +1,4 @@
+// content.js
 "use strict";
 // This script runs on Audius pages to detect artist information
 
@@ -136,7 +137,7 @@ function getUrlInfo(url) {
 
         // Validate the URL info
         if (!urlInfo.isArtistPage && !urlInfo.isContentPage) {
-            throw new Error('Not a valid Audius page');
+            throw new Error('Nothing to snag here');
         }
 
         if (urlInfo.isContentPage && (!urlInfo.contentId || !urlInfo.contentType)) {

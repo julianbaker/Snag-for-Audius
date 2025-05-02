@@ -1,3 +1,4 @@
+// audiusApi.js
 // List of available API hosts
 const AUDIUS_API_HOSTS = [
     'https://api.audius.co'

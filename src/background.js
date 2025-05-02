@@ -1,3 +1,4 @@
+// background.js
 // Load dependencies in correct order
 importScripts('./lib/jszip.min.js');
 importScripts('./services/audiusApi.js');
@@ -206,8 +207,91 @@ async function withRetry(operation, maxRetries = 3, baseDelay = 1000) {
 // Service worker initialization
 const SW_VERSION = '1.0.2'; // Increment this to force update
 
-// Listen for tab updates
+// Icon state management
+async function updateIconState(tabId, url) {
+    try {
+        const isAudiusUrl = url?.includes('audius.co');
+        console.log(`Updating icon state for tab ${tabId}:`, {
+            url,
+            isAudiusUrl,
+            iconPaths: {
+                "16": isAudiusUrl ? "/icons/icon16.png" : "/icons/disabled/icon16.png",
+                "48": isAudiusUrl ? "/icons/icon48.png" : "/icons/disabled/icon48.png",
+                "128": isAudiusUrl ? "/icons/icon128.png" : "/icons/disabled/icon128.png"
+            }
+        });
+
+        // Update icon with absolute paths
+        await chrome.action.setIcon({
+            tabId: tabId,
+            path: {
+                "16": isAudiusUrl ? "/icons/icon16.png" : "/icons/disabled/icon16.png",
+                "48": isAudiusUrl ? "/icons/icon48.png" : "/icons/disabled/icon48.png",
+                "128": isAudiusUrl ? "/icons/icon128.png" : "/icons/disabled/icon128.png"
+            }
+        });
+
+        // Update tooltip
+        await chrome.action.setTitle({
+            tabId: tabId,
+            title: isAudiusUrl ? "Snag (for Audius)" : "Snag (for Audius) - Not available on this page"
+        });
+
+        // Enable/disable popup
+        await chrome.action.setPopup({
+            tabId: tabId,
+            popup: isAudiusUrl ? "popup.html" : ""
+        });
+
+        console.log(`Successfully updated icon state for tab ${tabId}: ${isAudiusUrl ? 'enabled' : 'disabled'}`);
+    } catch (error) {
+        console.error('Error updating icon state:', error);
+        // Try to recover by setting a default state
+        try {
+            console.log('Attempting to recover icon state with disabled icons');
+            await chrome.action.setIcon({
+                tabId: tabId,
+                path: {
+                    "16": "/icons/disabled/icon16.png",
+                    "48": "/icons/disabled/icon48.png",
+                    "128": "/icons/disabled/icon128.png"
+                }
+            });
+            await chrome.action.setTitle({
+                tabId: tabId,
+                title: "Snag (for Audius) - Error"
+            });
+            await chrome.action.setPopup({
+                tabId: tabId,
+                popup: ""
+            });
+            console.log('Successfully recovered icon state');
+        } catch (recoveryError) {
+            console.error('Failed to recover icon state:', recoveryError);
+        }
+    }
+}
+
+// Initialize icon states for all open tabs
+async function initializeIconStates() {
+    try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            if (tab.id) {
+                await updateIconState(tab.id, tab.url);
+            }
+        }
+        console.log('Initialized icon states for all tabs');
+    } catch (error) {
+        console.error('Error initializing icon states:', error);
+    }
+}
+
+// Update tab listeners to include icon state management
 chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
+    // Update icon state
+    await updateIconState(tabId, tab.url);
+
     if (changeInfo.status === 'complete' && tab.url?.includes('audius.co')) {
         if (isArtistPage(tab.url)) {
             await updateTabInfo(tabId, tab.url);
@@ -224,6 +308,16 @@ chrome.tabs.onUpdated.addListener(async function (tabId, changeInfo, tab) {
                 });
             }
         }
+    }
+});
+
+// Handle tab activation
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    try {
+        const tab = await chrome.tabs.get(activeInfo.tabId);
+        await updateIconState(activeInfo.tabId, tab.url);
+    } catch (error) {
+        console.error('Error handling tab activation:', error);
     }
 });
 
@@ -257,7 +351,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 
                 // Validate the URL info
                 if (!urlInfo.isArtistPage && !urlInfo.isContentPage) {
-                    sendResponse({ success: false, error: 'Not a valid Audius page' });
+                    sendResponse({ success: false, error: 'Nothing to snag here' });
                     return;
                 }
 
@@ -354,8 +448,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
                 });
             });
 
-        // Return true to indicate we'll send a response asynchronously
-        return true;
+        return true; // Keep the message channel open for async response
     }
 
     // Handle other message types
@@ -483,14 +576,14 @@ async function createArtistArchive(artistData) {
 
         // Add markdown
         const markdown = generateMarkdown(artistData);
-        zip.file(`${profile.handle} Details.md`, markdown);
+        zip.file(`${profile.handle}_details.md`, markdown);
         console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
 
         // Add HTML
         const html = generateArtistHTML(artistData);
         console.log('Generated HTML for artist:', html?.length || 0);
         if (html) {
-            zip.file(`${profile.handle} Details.html`, html);
+            zip.file(`${profile.handle}_details.html`, html);
             console.log('Added HTML file to zip');
         } else {
             console.error('Failed to generate HTML for artist');
@@ -662,6 +755,10 @@ function generateMarkdown(artistData) {
     if (profile.is_deactivated) md.push('Status: Deactivated');
     if (!profile.is_available) md.push('Status: Unavailable');
 
+    // Add footer
+    md.push('');
+    md.push('Generated with [Snag (for Audius)](https://github.com/julianbaker/snag-for-audius) — an extension that makes it easy to download images and metadata from Audius Music');
+
     return md.join('\n');
 }
 
@@ -699,6 +796,10 @@ function generateArtistHTML(artistData) {
                 // Process links in headings
                 content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
                 return `<h3>${content}</h3>`;
+            }
+            // Handle dividers (horizontal rules)
+            if (line.trim() === '---' || line.trim() === '***' || line.trim() === '___') {
+                return '<hr>';
             }
             // Handle bullet points
             if (line.startsWith('- ')) {
@@ -776,6 +877,11 @@ function generateArtistHTML(artistData) {
         h1 a:hover, h2 a:hover, h3 a:hover {
             text-decoration: underline;
         }
+        hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 2em 0;
+        }
     </style>
 </head>
 <body>
@@ -845,13 +951,13 @@ async function createContentArchive(contentData) {
         const contentName = contentData.tracks.length === 1 ?
             contentData.tracks[0].title :
             contentData.playlists[0].playlist_name;
-        zip.file(`${contentName} Details.md`, markdown);
+        zip.file(`${contentName}_details.md`, markdown);
         console.log(`Added markdown (${(markdown.length / 1024).toFixed(1)} KB)`);
 
         // Add HTML
         const html = generateContentHTML(contentData);
         if (html) {
-            zip.file(`${contentName} Details.html`, html);
+            zip.file(`${contentName}_details.html`, html);
             console.log('Added HTML file to zip');
         }
 
@@ -1016,6 +1122,10 @@ function generateContentMarkdown(contentData) {
         }
     }
 
+    // Add footer
+    md.push('');
+    md.push('Generated with [Snag (for Audius)](https://github.com/julianbaker/snag-for-audius) — an extension that makes it easy to download images and metadata from Audius Music');
+
     return md.join('\n');
 }
 
@@ -1051,6 +1161,10 @@ function generateContentHTML(contentData) {
                 // Process links in headings
                 content = content.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank">$1</a>');
                 return `<h3>${content}</h3>`;
+            }
+            // Handle dividers (horizontal rules)
+            if (line.trim() === '---' || line.trim() === '***' || line.trim() === '___') {
+                return '<hr>';
             }
             // Handle numbered list items (track list)
             if (/^\d+\.\s/.test(line)) {
@@ -1140,6 +1254,11 @@ function generateContentHTML(contentData) {
         }
         h1 a:hover, h2 a:hover, h3 a:hover {
             text-decoration: underline;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #e0e0e0;
+            margin: 2em 0;
         }
     </style>
 </head>
@@ -1236,19 +1355,23 @@ function formatDownloadFilename(contentData, urlInfo) {
     };
 
     if (urlInfo.isArtistPage) {
-        return `${urlInfo.artistHandle} - Profile Assets (Audius).zip`;
+        return `${urlInfo.artistHandle} - profile assets [snagged from audius].zip`;
     }
 
     const contentName = getNameFromPath(contentData.data.contentId);
 
     switch (urlInfo.contentType) {
         case 'track':
-            return `${contentName} - Track Assets (Audius).zip`;
+            return `${contentName} - track assets [snagged from audius].zip`;
         case 'playlist':
-            return `${contentName} - Playlist Assets (Audius).zip`;
+            return `${contentName} - playlist assets [snagged from audius].zip`;
         case 'album':
-            return `${contentName} - Album Assets (Audius).zip`;
+            return `${contentName} - album assets [snagged from audius].zip`;
         default:
-            return `${contentName} - Assets (Audius).zip`;
+            return `${contentName} - assets [snagged from audius].zip`;
     }
-} 
+}
+
+// Initialize icon states when extension starts
+chrome.runtime.onStartup.addListener(initializeIconStates);
+chrome.runtime.onInstalled.addListener(initializeIconStates); 

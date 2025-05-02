@@ -4,53 +4,53 @@
 <head>
     <style>
         body {
-            width: 300px;
-            padding: 16px;
+            width: 240px;
+            min-height: 48px;
             margin: 0;
+            padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #121212;
+            background: linear-gradient(135deg, #1a1a1a, #121212);
             color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         }
 
         #status {
-            padding: 16px;
-            border-radius: 12px;
-            text-align: center;
             font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 12px;
+            font-weight: 450;
+            letter-spacing: 0.2px;
+            padding: 14px 18px;
+            width: 100%;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: transparent;
+            opacity: 0;
+            transform: translateY(4px);
+            animation: fadeIn 0.3s forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .loading {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.92);
         }
 
         .success {
-            background: rgba(123, 97, 255, 0.15);
             color: #a18eff;
-            border: 1px solid rgba(123, 97, 255, 0.3);
+            text-shadow: 0 0 20px rgba(161, 142, 255, 0.2);
         }
 
         .error {
-            background: rgba(255, 71, 87, 0.15);
             color: #ff6b6b;
-            border: 1px solid rgba(255, 71, 87, 0.3);
-        }
-
-        /* Add a subtle gradient background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #0a0a0a 0%, #121212 100%);
-            z-index: -1;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.2);
         }
     </style>
 </head>
