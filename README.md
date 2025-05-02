@@ -1,5 +1,7 @@
 # Snag (for Audius)
 
+<img src="badgeAudius@2x.png" alt="Powered by Audius" width="240"/>
+
 Audius doesn't make it easy to grab images from a page.
 Sometimes you need to. That's why I made Snag — a tiny Chrome extension that lets you quickly grab assets from Audius artist profiles, tracks, playlists, and albums.
 
