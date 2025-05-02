@@ -8,8 +8,9 @@ async function getCurrentTab() {
         }
         return tab;
     } catch (error) {
-        console.error('Error getting current tab:', error);
-        throw new Error('Failed to get current tab');
+        // Log once with context
+        console.error('Tab retrieval error:', error.message);
+        throw error;
     }
 }
 
@@ -21,12 +22,10 @@ async function getUrlInfo(tabId) {
             tabId: tabId
         }, response => {
             if (chrome.runtime.lastError) {
-                console.error('Error getting URL info:', chrome.runtime.lastError);
                 reject(new Error(`Failed to get page information: ${chrome.runtime.lastError.message}`));
                 return;
             }
             if (!response || !response.success) {
-                console.error('Invalid response:', response);
                 reject(new Error(response?.error || 'Failed to parse URL information'));
                 return;
             }
@@ -43,25 +42,18 @@ function getArtistFromTrackUrl(url) {
         if (pathParts.length === 2) {
             return pathParts[0]; // First part is the artist handle
         }
-    } catch (error) {
-        console.error('Error extracting artist from track URL:', error);
+    } catch {
+        // Silently fail - this is expected for non-track URLs
     }
     return null;
 }
 
 // Update status display
 function updateStatus(message, type = 'loading') {
-    try {
-        const statusEl = document.getElementById('status');
-        if (!statusEl) {
-            console.error('Status element not found');
-            return;
-        }
-        statusEl.textContent = message;
-        statusEl.className = type;
-    } catch (error) {
-        console.error('Error updating status:', error);
-    }
+    const statusEl = document.getElementById('status');
+    if (!statusEl) return; // Silently fail for UI errors
+    statusEl.textContent = message;
+    statusEl.className = type;
 }
 
 // Main download handler
@@ -77,7 +69,6 @@ async function handleDownload() {
 
         // Get URL info from content script
         const urlInfo = await getUrlInfo(tab.id);
-        console.log('URL parsing details:', urlInfo);
 
         if (!urlInfo) {
             throw new Error('Failed to parse page information');
@@ -89,7 +80,6 @@ async function handleDownload() {
         let artistId = urlInfo.artistHandle;
         if (urlInfo.isContentPage && urlInfo.contentType === 'track') {
             artistId = getArtistFromTrackUrl(tab.url);
-            console.log('Extracted artist ID from track URL:', artistId);
         }
 
         // Send download request to background script
@@ -100,7 +90,6 @@ async function handleDownload() {
             artistId: artistId
         }, (response) => {
             if (chrome.runtime.lastError) {
-                console.error('Message sending error:', chrome.runtime.lastError);
                 updateStatus('Failed to start download', 'error');
             } else if (response && response.success) {
                 updateStatus('Snagged!', 'success');
@@ -112,7 +101,6 @@ async function handleDownload() {
         });
 
     } catch (error) {
-        console.error('Download error:', error);
         updateStatus(error.message || 'Download failed', 'error');
         setTimeout(() => window.close(), 2000);
     }

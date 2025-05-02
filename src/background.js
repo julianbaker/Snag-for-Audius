@@ -13,17 +13,12 @@ const audiusApi = new AudiusApiService();
 
 // Wait for service worker initialization
 self.addEventListener('install', function (event) {
-    console.log('Service Worker installing...');
     event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', function (event) {
-    console.log('Service Worker activating...');
     event.waitUntil(self.clients.claim());
 });
-
-// Add a message to indicate the service worker is ready
-console.log('Service Worker initialized and ready');
 
 // Expose necessary objects to global scope
 self.JSZip = JSZip;
@@ -81,8 +76,7 @@ function extractArtistHandle(url) {
         }
 
         return null;
-    } catch (error) {
-        console.error('URL parsing error:', error);
+    } catch {
         return null;
     }
 }
@@ -91,64 +85,27 @@ function extractContentId(url) {
     try {
         const urlObj = new URL(url);
         const pathParts = urlObj.pathname.split('/').filter(Boolean);
-        console.log('Extracting content ID from path parts:', pathParts);
 
         // Validate URL structure
         if (pathParts.length < 2 || pathParts.length > 3) {
-            console.log('Invalid URL structure - expected 2 or 3 path parts');
-            return null;
-        }
-
-        // Validate artist handle (first part)
-        const artistHandle = pathParts[0];
-        if (!artistHandle || artistHandle.length < 1) {
-            console.log('Invalid artist handle');
             return null;
         }
 
         // Handle track URLs (artist/track-name)
         if (pathParts.length === 2) {
-            const trackName = pathParts[1];
-            if (!trackName || trackName.length < 1) {
-                console.log('Invalid track name');
-                return null;
-            }
-
-            // For tracks, we need to use the full permalink as the ID
-            // since the API requires the artist/track-name format
-            console.log('Found track URL pattern, returning permalink:', `${artistHandle}/${trackName}`);
-            return `${artistHandle}/${trackName}`;
+            return `${pathParts[0]}/${pathParts[1]}`;
         }
 
         // Handle album/playlist URLs (artist/album/album-id or artist/playlist/playlist-id)
         if (pathParts.length === 3) {
             const [artist, type, slug] = pathParts;
-
-            // Validate content type
-            if (type !== 'album' && type !== 'playlist') {
-                console.log('Invalid content type:', type);
-                return null;
+            if (type === 'album' || type === 'playlist') {
+                return `${artist}/${type}/${slug}`;
             }
-
-            // Validate slug
-            if (!slug || slug.length < 1) {
-                console.log('Invalid slug');
-                return null;
-            }
-
-            console.log('Found album/playlist URL pattern:', { artist, type, slug });
-
-            // For albums/playlists, we need to use the full permalink format
-            // This matches how the API expects to receive playlist/album IDs
-            const permalink = `${artist}/${type}/${slug}`;
-            console.log('Using full permalink as ID:', permalink);
-            return permalink;
         }
 
-        console.log('No matching URL pattern found');
         return null;
-    } catch (error) {
-        console.error('Error extracting content ID:', error);
+    } catch {
         return null;
     }
 }
@@ -174,8 +131,7 @@ function getContentType(url) {
         }
 
         return null;
-    } catch (error) {
-        console.error('Error determining content type:', error);
+    } catch {
         return null;
     }
 }
@@ -211,15 +167,6 @@ const SW_VERSION = '1.0.2'; // Increment this to force update
 async function updateIconState(tabId, url) {
     try {
         const isAudiusUrl = url?.includes('audius.co');
-        console.log(`Updating icon state for tab ${tabId}:`, {
-            url,
-            isAudiusUrl,
-            iconPaths: {
-                "16": isAudiusUrl ? "/icons/icon16.png" : "/icons/disabled/icon16.png",
-                "48": isAudiusUrl ? "/icons/icon48.png" : "/icons/disabled/icon48.png",
-                "128": isAudiusUrl ? "/icons/icon128.png" : "/icons/disabled/icon128.png"
-            }
-        });
 
         // Update icon with absolute paths
         await chrome.action.setIcon({
@@ -242,13 +189,14 @@ async function updateIconState(tabId, url) {
             tabId: tabId,
             popup: isAudiusUrl ? "popup.html" : ""
         });
-
-        console.log(`Successfully updated icon state for tab ${tabId}: ${isAudiusUrl ? 'enabled' : 'disabled'}`);
     } catch (error) {
-        console.error('Error updating icon state:', error);
+        // Log once with context
+        console.error('Icon state error:', {
+            tabId,
+            error: error.message
+        });
         // Try to recover by setting a default state
         try {
-            console.log('Attempting to recover icon state with disabled icons');
             await chrome.action.setIcon({
                 tabId: tabId,
                 path: {
@@ -265,7 +213,6 @@ async function updateIconState(tabId, url) {
                 tabId: tabId,
                 popup: ""
             });
-            console.log('Successfully recovered icon state');
         } catch (recoveryError) {
             console.error('Failed to recover icon state:', recoveryError);
         }
@@ -281,7 +228,6 @@ async function initializeIconStates() {
                 await updateIconState(tab.id, tab.url);
             }
         }
-        console.log('Initialized icon states for all tabs');
     } catch (error) {
         console.error('Error initializing icon states:', error);
     }

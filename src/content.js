@@ -8,8 +8,7 @@ function isArtistPage(url) {
         const urlObj = new URL(url);
         const pathParts = urlObj.pathname.split('/').filter(Boolean);
         return pathParts.length === 1 && !['trending', 'explore', 'feed', 'notifications'].includes(pathParts[0]);
-    } catch (error) {
-        console.error('Error in isArtistPage:', error);
+    } catch {
         return false;
     }
 }
@@ -31,8 +30,7 @@ function isContentPage(url) {
         }
 
         return false;
-    } catch (error) {
-        console.error('Error in isContentPage:', error);
+    } catch {
         return false;
     }
 }
@@ -56,8 +54,7 @@ function extractArtistHandle(url) {
         }
 
         return null;
-    } catch (error) {
-        console.error('Error in extractArtistHandle:', error);
+    } catch {
         return null;
     }
 }
@@ -69,7 +66,6 @@ function extractContentId(url) {
 
         // Validate URL structure
         if (pathParts.length < 2 || pathParts.length > 3) {
-            console.log('Invalid URL structure:', pathParts);
             return null;
         }
 
@@ -87,8 +83,7 @@ function extractContentId(url) {
         }
 
         return null;
-    } catch (error) {
-        console.error('Error in extractContentId:', error);
+    } catch {
         return null;
     }
 }
@@ -114,8 +109,7 @@ function getContentType(url) {
         }
 
         return null;
-    } catch (error) {
-        console.error('Error in getContentType:', error);
+    } catch {
         return null;
     }
 }
@@ -148,7 +142,6 @@ function getUrlInfo(url) {
             throw new Error('Invalid artist page URL');
         }
 
-        console.log('URL info parsed successfully:', urlInfo);
         return urlInfo;
     } catch (error) {
         console.error('Error in getUrlInfo:', error);
@@ -158,15 +151,11 @@ function getUrlInfo(url) {
 
 // Listen for messages from popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('Content script received message:', message);
-
     if (message.type === 'GET_URL_INFO') {
         try {
             const urlInfo = getUrlInfo(window.location.href);
-            console.log('Sending URL info to popup:', urlInfo);
             sendResponse({ success: true, data: urlInfo });
         } catch (error) {
-            console.error('Error processing GET_URL_INFO:', error);
             sendResponse({
                 success: false,
                 error: error.message || 'Failed to parse URL information'
@@ -189,7 +178,7 @@ new MutationObserver(async () => {
                 type: 'URL_CHANGED',
                 urlInfo
             }).catch(error => {
-                // Ignore errors when popup is not open
+                // Only log if it's not the expected "popup not open" error
                 if (!error.message.includes('receiving end does not exist')) {
                     console.error('Error sending URL change message:', error);
                 }
@@ -214,13 +203,13 @@ function initializeContentScript() {
 
     try {
         const urlInfo = getUrlInfo(window.location.href);
-        console.log('Content script initialized with URL info:', urlInfo);
 
         // Notify background script that content script is ready
         chrome.runtime.sendMessage({
             type: 'CONTENT_SCRIPT_READY',
             urlInfo
         }).catch(error => {
+            // Only log if it's not the expected "popup not open" error
             if (!error.message.includes('receiving end does not exist')) {
                 console.error('Error sending ready message:', error);
             }
