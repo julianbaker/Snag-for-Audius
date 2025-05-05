@@ -5,6 +5,8 @@ Sometimes you need to. That's why I made Snag, a lightweight Chrome extension th
 
 Just click, and you'll have a zip of everything you need.
 
+👉 **Available on the [Chrome Web Store](https://chromewebstore.google.com/detail/snag-for-audius/npejkafkeiijgglcnlggkhjckhochmij)!** 
+
 [<img src="badgeAudius@2x.png" alt="Powered by Audius" width="240"/>](https://audius.co)
 
 ## Usage
