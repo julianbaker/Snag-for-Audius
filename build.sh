@@ -20,7 +20,7 @@ VERSION=$(jq -r '.version' version.json)
 BUILD=$(jq -r '.build' version.json)
 CURRENT_DIR="dist/current"
 EXT_DIR="$CURRENT_DIR/extension"
-ZIP_NAME="snag-for-audius-v${VERSION}.zip"
+ZIP_NAME="snag-for-audius-v${VERSION}.${BUILD}.zip"
 ZIP_PATH="dist/$ZIP_NAME"
 INSTALL_GUIDE="docs/INSTALLATION.txt"
 
@@ -42,7 +42,7 @@ cp src/content.js "$EXT_DIR/" || handle_error "Failed to copy content.js"
 cp "$INSTALL_GUIDE" "$CURRENT_DIR/" || handle_error "Failed to copy installation guide"
 
 # Update manifest version
-jq --arg version "$VERSION" '.version = $version' "$EXT_DIR/manifest.json" > "$EXT_DIR/manifest.tmp"
+jq --arg version "$VERSION.$BUILD" '.version = $version' "$EXT_DIR/manifest.json" > "$EXT_DIR/manifest.tmp"
 mv "$EXT_DIR/manifest.tmp" "$EXT_DIR/manifest.json"
 
 # Remove any existing zip for this version
@@ -50,9 +50,9 @@ rm -f "$ZIP_PATH"
 
 # Create the zip archive (so the top-level folder is named after the version)
 cd dist || handle_error "Failed to enter dist directory"
-cp -R current "snag-for-audius-v${VERSION}" || handle_error "Failed to copy for zipping"
-zip -r "$ZIP_NAME" "snag-for-audius-v${VERSION}" > /dev/null || handle_error "Failed to create ZIP archive"
-rm -rf "snag-for-audius-v${VERSION}"
+cp -R current "snag-for-audius-v${VERSION}.${BUILD}" || handle_error "Failed to copy for zipping"
+zip -r "$ZIP_NAME" "snag-for-audius-v${VERSION}.${BUILD}" > /dev/null || handle_error "Failed to create ZIP archive"
+rm -rf "snag-for-audius-v${VERSION}.${BUILD}"
 cd ..
 
 # Increment build number
