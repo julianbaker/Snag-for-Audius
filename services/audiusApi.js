@@ -26,25 +26,36 @@ self.AudiusApiService = class {
         Object.entries(params).forEach(([key, value]) => {
             url.searchParams.append(key, value.toString());
         });
+
+        console.log('Making API request to:', url.toString());
+
         try {
             const response = await fetch(url.toString());
+            console.log('API Response status:', response.status, response.statusText);
+
             if (!response.ok) {
-                // Try next host if available
-                const currentIndex = AUDIUS_API_HOSTS.indexOf(this.currentHost);
-                if (currentIndex < AUDIUS_API_HOSTS.length - 1) {
-                    this.currentHost = AUDIUS_API_HOSTS[currentIndex + 1];
-                    return this.fetchApi(endpoint, params);
-                }
-                throw new Error(`API request failed: ${response.statusText}`);
+                const errorText = await response.text();
+                console.error('API Error Response:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: errorText
+                });
+                throw new Error(`API request failed: ${response.status} ${response.statusText} - ${errorText}`);
             }
+
             const data = await response.json();
             if (!data.data) {
+                console.error('Invalid API response format:', data);
                 throw new Error('Invalid API response format: missing data wrapper');
             }
             return data.data;
         }
         catch (error) {
-            console.error('Audius API Error:', error);
+            console.error('Audius API Error:', {
+                url: url.toString(),
+                error: error.message,
+                stack: error.stack
+            });
             throw error;
         }
     }
@@ -143,17 +154,20 @@ self.AudiusApiService = class {
                 }
             }
 
-            // Try search with the permalink
-            const searchResults = await this.fetchApi('/v1/tracks/search', {
-                query: permalink,
-                limit: 1
+            // Try to resolve the permalink to get the track ID
+            console.log('Attempting to resolve permalink:', permalink);
+            const resolveResult = await this.fetchApi('/v1/resolve', {
+                url: `https://audius.co/${permalink}`
             });
 
-            if (!searchResults?.length) {
-                throw new Error(`Track not found: ${permalink}`);
+            if (!resolveResult?.id) {
+                throw new Error(`Could not resolve track: ${permalink}`);
             }
 
-            return searchResults[0];
+            // Now get the track data using the resolved ID
+            console.log('Got track ID, fetching track data:', resolveResult.id);
+            const trackData = await this.fetchApi(`/v1/tracks/${resolveResult.id}`);
+            return trackData;
         } catch (error) {
             console.error('Error getting track data:', error);
             throw error;
@@ -176,33 +190,24 @@ self.AudiusApiService = class {
                 }
             }
 
-            // If direct lookup fails or it's not a numeric ID, try search
-            console.log('Attempting search for:', playlistId);
-            const searchResults = await this.fetchApi('/v1/playlists/search', {
-                query: playlistId,
-                limit: 10
-            });
+            // Extract artist and playlist name from the permalink
+            const parts = playlistId.split('/');
+            if (parts.length !== 3) {
+                throw new Error(`Invalid playlist permalink format: ${playlistId}`);
+            }
+            const [artist, , playlistName] = parts;
 
-            console.log('Search results:', searchResults);
+            // Try to get playlist by permalink
+            console.log('Attempting to get playlist by permalink:', `${artist}/${playlistName}`);
+            const playlistData = await this.fetchApi(`/v1/playlists/by_permalink/${artist}/${playlistName}`);
 
-            if (!searchResults?.length) {
-                console.error('No search results found for:', playlistId);
-                throw new Error(`Content not found: ${playlistId}`);
+            if (!playlistData?.length) {
+                console.error('Invalid playlist data:', playlistData);
+                throw new Error(`Could not find playlist: ${playlistId}`);
             }
 
-            // Try to find an exact match by permalink
-            const exactMatch = searchResults.find(result =>
-                result.permalink.toLowerCase().includes(playlistId.toLowerCase())
-            );
-
-            if (exactMatch) {
-                console.log('Found exact match:', exactMatch);
-                return { data: [exactMatch] };
-            }
-
-            // If no exact match, return the first result
-            console.log('Using first result:', searchResults[0]);
-            return { data: [searchResults[0]] };
+            console.log('Successfully retrieved playlist data');
+            return { data: playlistData };
         } catch (error) {
             console.error('Error in getPlaylistData:', error);
             throw error;

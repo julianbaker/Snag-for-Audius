@@ -1271,7 +1271,7 @@ async function handleContentDownload(contentId, contentType, artistId) {
                 };
             } else {
                 // Otherwise, it's a permalink that needs to be resolved
-                const permalink = `${artistId}/${contentId}`;
+                const permalink = contentId; // Use contentId directly since it already contains the full permalink
                 const trackData = await audiusApi.getTrackData(permalink);
                 contentData = {
                     profile: trackData.user,
