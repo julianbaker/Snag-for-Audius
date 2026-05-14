@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Snag (for Audius) — Settings</title>
+<style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 32px auto; padding: 0 16px; color: #222; line-height: 1.5; }
+    h1 { margin-top: 0; }
+    label { display: block; font-weight: 600; margin: 16px 0 6px; }
+    input[type="text"] { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; font-family: ui-monospace, monospace; }
+    button { margin-top: 16px; padding: 10px 16px; background: #7E1BCC; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    button:disabled { opacity: 0.6; cursor: default; }
+    .help { color: #555; font-size: 13px; margin-top: 6px; }
+    .status { margin-top: 12px; font-size: 13px; min-height: 1.4em; }
+    .status.success { color: #1f7f4c; }
+    .status.error { color: #c0392b; }
+    a { color: #7E1BCC; }
+</style>
+</head>
+<body>
+    <h1>Snag (for Audius)</h1>
+    <p>Optional: provide an Audius API key. Without one, requests use the public unauthenticated quota.</p>
+
+    <label for="apiKey">Audius API key</label>
+    <input id="apiKey" type="text" autocomplete="off" spellcheck="false" placeholder="Paste API key here">
+    <p class="help">
+        Get a key from <a href="https://api.audius.co/plans" target="_blank" rel="noopener noreferrer">api.audius.co/plans</a> or <a href="https://audius.co/settings" target="_blank" rel="noopener noreferrer">audius.co/settings</a> → Manage Your Apps.
+    </p>
+
+    <div>
+        <button id="save">Save</button>
+        <button id="clear" style="background:#aaa">Clear</button>
+    </div>
+    <div id="status" class="status"></div>
+
+    <script src="options.js"></script>
+</body>
+</html>

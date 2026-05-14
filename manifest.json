@@ -7,11 +7,16 @@
         "tabs",
         "downloads",
         "activeTab",
-        "notifications"
+        "storage"
     ],
     "host_permissions": [
         "*://*.audius.co/*",
-        "https://api.audius.co/*"
+        "https://api.audius.co/*",
+        "https://*.open-audio-validator.com/*",
+        "https://*.theblueprint.xyz/*",
+        "https://*.figment.io/*",
+        "https://*.cultur3stake.com/*",
+        "https://*.audiusindex.org/*"
     ],
     "background": {
         "service_worker": "background.js"
@@ -24,6 +29,10 @@
             "128": "icons/icon128.png"
         }
     },
+    "options_ui": {
+        "page": "options.html",
+        "open_in_tab": true
+    },
     "icons": {
         "16": "icons/icon16.png",
         "48": "icons/icon48.png",
@@ -35,6 +44,7 @@
                 "*://*.audius.co/*"
             ],
             "js": [
+                "services/urlParser.js",
                 "content.js"
             ]
         }
@@ -44,6 +54,7 @@
             "resources": [
                 "lib/jszip.min.js",
                 "services/audiusApi.js",
+                "services/urlParser.js",
                 "icons/*"
             ],
             "matches": [

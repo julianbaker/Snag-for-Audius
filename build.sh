@@ -22,7 +22,6 @@ CURRENT_DIR="dist/current"
 EXT_DIR="$CURRENT_DIR/extension"
 ZIP_NAME="snag-for-audius-v${VERSION}.${BUILD}.zip"
 ZIP_PATH="dist/$ZIP_NAME"
-INSTALL_GUIDE="docs/INSTALLATION.txt"
 
 # Clean up previous build
 rm -rf "$CURRENT_DIR"
@@ -34,12 +33,11 @@ cp -r icons "$EXT_DIR/" || handle_error "Failed to copy icons"
 cp -r lib "$EXT_DIR/" || handle_error "Failed to copy lib"
 cp src/popup.html "$EXT_DIR/" || handle_error "Failed to copy popup.html"
 cp src/popup.js "$EXT_DIR/" || handle_error "Failed to copy popup.js"
+cp src/options.html "$EXT_DIR/" || handle_error "Failed to copy options.html"
+cp src/options.js "$EXT_DIR/" || handle_error "Failed to copy options.js"
 cp src/background.js "$EXT_DIR/" || handle_error "Failed to copy background.js"
 cp services/*.js "$EXT_DIR/services/" || handle_error "Failed to copy service files"
 cp src/content.js "$EXT_DIR/" || handle_error "Failed to copy content.js"
-
-# Copy installation guide
-cp "$INSTALL_GUIDE" "$CURRENT_DIR/" || handle_error "Failed to copy installation guide"
 
 # Update manifest version
 jq --arg version "$VERSION.$BUILD" '.version = $version' "$EXT_DIR/manifest.json" > "$EXT_DIR/manifest.tmp"
