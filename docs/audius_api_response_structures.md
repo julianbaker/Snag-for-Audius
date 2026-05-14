@@ -138,8 +138,7 @@ interface User {
 
 ## Notes
 
-- All requests include `app_name=snag_chrome_extension`. If a user provides an API key
-  via the options page, the extension also sends `x-api-key: <key>`.
+- All requests include `app_name=snag_chrome_extension`.
 - The `data` envelope is always present; the service layer unwraps it.
 - `/v1/playlists/by_permalink/{handle}/{slug}` takes the album/playlist *slug* — not the
   full `handle/album/slug` URL path. The service layer extracts the slug for you.

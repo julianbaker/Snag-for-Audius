@@ -1,15 +1,12 @@
 // audiusApi.js
 // Thin client over the Audius REST API (https://api.audius.co/v1).
-// Reads an optional API key from chrome.storage.local under "audiusApiKey".
 
 const AUDIUS_API_HOST = 'https://api.audius.co';
-const API_KEY_STORAGE_KEY = 'audiusApiKey';
 
 self.AudiusApiService = class {
     constructor() {
         this.defaultLimit = 50;
         this.appName = 'snag_chrome_extension';
-        this._apiKeyPromise = null;
     }
 
     static getInstance() {
@@ -17,23 +14,6 @@ self.AudiusApiService = class {
             AudiusApiService.instance = new AudiusApiService();
         }
         return AudiusApiService.instance;
-    }
-
-    async _getApiKey() {
-        if (this._apiKeyPromise) return this._apiKeyPromise;
-        this._apiKeyPromise = (async () => {
-            try {
-                const stored = await chrome.storage.local.get(API_KEY_STORAGE_KEY);
-                return stored?.[API_KEY_STORAGE_KEY] || null;
-            } catch {
-                return null;
-            }
-        })();
-        return this._apiKeyPromise;
-    }
-
-    invalidateApiKey() {
-        this._apiKeyPromise = null;
     }
 
     async fetchApi(endpoint, params = {}) {
@@ -44,11 +24,7 @@ self.AudiusApiService = class {
             url.searchParams.append(key, String(value));
         }
 
-        const apiKey = await this._getApiKey();
-        const headers = { 'Accept': 'application/json' };
-        if (apiKey) headers['x-api-key'] = apiKey;
-
-        const response = await fetch(url.toString(), { headers });
+        const response = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
         if (!response.ok) {
             const errorText = await response.text().catch(() => '');
             throw new Error(`Audius API ${response.status} ${response.statusText} for ${endpoint}: ${errorText.slice(0, 200)}`);

@@ -32,8 +32,6 @@ Just click, and you'll have a zip of everything you need.
 ├── src/                # Core extension files
 │   ├── popup.html      # Popup UI structure
 │   ├── popup.js        # Popup UI logic
-│   ├── options.html    # Settings page (API key)
-│   ├── options.js      # Settings page logic
 │   ├── background.js   # Service worker for background tasks
 │   └── content.js      # Content script for page interaction
 ├── services/           # API and service implementations
@@ -50,12 +48,6 @@ Just click, and you'll have a zip of everything you need.
 ├── tsconfig.json       # TypeScript configuration
 └── build.sh            # Build script
 ```
-
-### API key (optional)
-Open the extension's "Options" page (right-click the toolbar icon → Options) to paste
-an Audius API key. Without one, the extension uses the public unauthenticated quota.
-Get a key from [api.audius.co/plans](https://api.audius.co/plans) or
-[audius.co/settings](https://audius.co/settings) → Manage Your Apps.
 
 ### Development Setup
 The project uses TypeScript and Node.js for development. Key configuration files:
