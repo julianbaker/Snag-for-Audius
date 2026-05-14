@@ -104,23 +104,22 @@ function handleDownloadMessage(message, sendResponse) {
 
     job.then((zipBlob) => {
         const filename = formatDownloadFilename(message);
-        const url = URL.createObjectURL(zipBlob);
-        chrome.downloads.download({ url, filename, saveAs: false }, (downloadId) => {
-            if (chrome.runtime.lastError) {
-                URL.revokeObjectURL(url);
-                sendResponse({ success: false, error: chrome.runtime.lastError.message });
-                return;
-            }
-            const cleanup = (delta) => {
-                if (delta.id !== downloadId) return;
-                if (delta.state?.current === 'complete' || delta.state?.current === 'interrupted') {
-                    URL.revokeObjectURL(url);
-                    chrome.downloads.onChanged.removeListener(cleanup);
+        // MV3 service workers have no URL.createObjectURL; read the blob into a
+        // data: URL instead (FileReader is available in the worker scope).
+        const reader = new FileReader();
+        reader.onload = () => {
+            chrome.downloads.download({ url: reader.result, filename, saveAs: false }, () => {
+                if (chrome.runtime.lastError) {
+                    sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                    return;
                 }
-            };
-            chrome.downloads.onChanged.addListener(cleanup);
-            sendResponse({ success: true });
-        });
+                sendResponse({ success: true });
+            });
+        };
+        reader.onerror = () => {
+            sendResponse({ success: false, error: 'Failed to process download data' });
+        };
+        reader.readAsDataURL(zipBlob);
     }).catch((error) => {
         console.error('Download error:', error);
         sendResponse({ success: false, error: error.message || 'Download failed' });
