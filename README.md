@@ -29,23 +29,24 @@ Just click, and you'll have a zip of everything you need.
 
 ### Project Structure
 ```
-├── src/               # Core extension files
-│   ├── popup.html     # Popup UI structure
-│   ├── popup.js       # Popup UI logic
-│   ├── background.js  # Service worker for background tasks
-│   └── content.js     # Content script for page interaction
-├── services/          # API and service implementations
-│   └── audiusApi.js   # Audius API integration
-├── types/            # TypeScript type definitions (currently empty)
-├── docs/             # Documentation files (currently empty)
-├── tests/            # Test files (currently empty)
-├── lib/              # External libraries
-├── icons/            # Extension icons
-├── manifest.json     # Extension configuration
-├── package.json      # Node.js dependencies and scripts
-├── package-lock.json # Locked dependency versions
-├── tsconfig.json     # TypeScript configuration
-└── build.sh         # Build script
+├── src/                # Core extension files
+│   ├── popup.html      # Popup UI structure
+│   ├── popup.js        # Popup UI logic
+│   ├── background.js   # Service worker for background tasks
+│   └── content.js      # Content script for page interaction
+├── services/           # API and service implementations
+│   ├── audiusApi.js    # Audius API integration
+│   └── urlParser.js    # Shared Audius URL parsing
+├── types/              # TypeScript type definitions
+├── docs/               # Documentation files
+├── tests/              # Smoke tests
+├── lib/                # External libraries
+├── icons/              # Extension icons
+├── manifest.json       # Extension configuration
+├── package.json        # Node.js dependencies and scripts
+├── package-lock.json   # Locked dependency versions
+├── tsconfig.json       # TypeScript configuration
+└── build.sh            # Build script
 ```
 
 ### Development Setup

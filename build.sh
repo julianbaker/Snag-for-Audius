@@ -22,7 +22,6 @@ CURRENT_DIR="dist/current"
 EXT_DIR="$CURRENT_DIR/extension"
 ZIP_NAME="snag-for-audius-v${VERSION}.${BUILD}.zip"
 ZIP_PATH="dist/$ZIP_NAME"
-INSTALL_GUIDE="docs/INSTALLATION.txt"
 
 # Clean up previous build
 rm -rf "$CURRENT_DIR"
@@ -38,9 +37,6 @@ cp src/background.js "$EXT_DIR/" || handle_error "Failed to copy background.js"
 cp services/*.js "$EXT_DIR/services/" || handle_error "Failed to copy service files"
 cp src/content.js "$EXT_DIR/" || handle_error "Failed to copy content.js"
 
-# Copy installation guide
-cp "$INSTALL_GUIDE" "$CURRENT_DIR/" || handle_error "Failed to copy installation guide"
-
 # Update manifest version
 jq --arg version "$VERSION.$BUILD" '.version = $version' "$EXT_DIR/manifest.json" > "$EXT_DIR/manifest.tmp"
 mv "$EXT_DIR/manifest.tmp" "$EXT_DIR/manifest.json"
@@ -48,12 +44,11 @@ mv "$EXT_DIR/manifest.tmp" "$EXT_DIR/manifest.json"
 # Remove any existing zip for this version
 rm -f "$ZIP_PATH"
 
-# Create the zip archive (so the top-level folder is named after the version)
-cd dist || handle_error "Failed to enter dist directory"
-cp -R current "snag-for-audius-v${VERSION}.${BUILD}" || handle_error "Failed to copy for zipping"
-zip -r "$ZIP_NAME" "snag-for-audius-v${VERSION}.${BUILD}" > /dev/null || handle_error "Failed to create ZIP archive"
-rm -rf "snag-for-audius-v${VERSION}.${BUILD}"
-cd ..
+# Create the zip archive. manifest.json must sit at the ZIP root for the
+# Chrome Web Store, so zip the contents of the extension directory directly.
+cd "$EXT_DIR" || handle_error "Failed to enter extension directory"
+zip -r "../../$ZIP_NAME" . > /dev/null || handle_error "Failed to create ZIP archive"
+cd - > /dev/null
 
 # Increment build number
 jq --argjson new_build $((BUILD + 1)) '.build = $new_build' version.json > version.tmp

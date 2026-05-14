@@ -1,32 +1,26 @@
+// Smoke test for services/audiusApi.js against the live API.
+// Not a real test suite — run manually under a Node environment with `fetch`.
+
 import { AudiusApiService } from '../services/audiusApi';
 
 async function testAudiusApi() {
-    const audiusApi = AudiusApiService.getInstance();
-
+    const audius = AudiusApiService.getInstance();
     try {
-        // Test artist data
-        console.log('Testing artist data for reapernoises:');
-        const reaperData = await audiusApi.getFullArtistData('reapernoises');
-        console.log(JSON.stringify(reaperData, null, 2));
+        const skrillex = await audius.getFullArtistData('skrillex');
+        console.log('Full artist data shape:', {
+            id: skrillex.profile.id,
+            handle: skrillex.profile.handle,
+            trackCount: skrillex.tracks.length,
+            playlistCount: skrillex.playlists.length,
+            hasMirrorsOnAvatar: Array.isArray(skrillex.profile.profile_picture?.mirrors),
+            hasMirrorsOnCover: Array.isArray(skrillex.profile.cover_photo?.mirrors)
+        });
 
-        // Test tracks for cooprecsmusic
-        console.log('\nTesting tracks for cooprecsmusic:');
-        const cooprecsTracks = await audiusApi.getArtistTracks('cooprecsmusic');
-        console.log(JSON.stringify(cooprecsTracks, null, 2));
-
-        // Test playlists for roqario
-        console.log('\nTesting playlists for roqario:');
-        const roqarioPlaylists = await audiusApi.getArtistPlaylists('roqario');
-        console.log(JSON.stringify(roqarioPlaylists, null, 2));
-
-        // Test artist data for samharadev
-        console.log('\nTesting artist data for samharadev:');
-        const samharadevData = await audiusApi.getFullArtistData('samharadev');
-        console.log(JSON.stringify(samharadevData, null, 2));
-
+        const track = await audius.getTrackByPermalink('skrillex/kliptown-empyrean-98562');
+        console.log('Track by permalink:', { id: track.id, title: track.title });
     } catch (error) {
-        console.error('Error testing Audius API:', error);
+        console.error('Audius API smoke test failed:', error);
     }
 }
 
-testAudiusApi(); 
+testAudiusApi();
