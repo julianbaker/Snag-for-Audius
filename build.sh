@@ -44,12 +44,11 @@ mv "$EXT_DIR/manifest.tmp" "$EXT_DIR/manifest.json"
 # Remove any existing zip for this version
 rm -f "$ZIP_PATH"
 
-# Create the zip archive (so the top-level folder is named after the version)
-cd dist || handle_error "Failed to enter dist directory"
-cp -R current "snag-for-audius-v${VERSION}.${BUILD}" || handle_error "Failed to copy for zipping"
-zip -r "$ZIP_NAME" "snag-for-audius-v${VERSION}.${BUILD}" > /dev/null || handle_error "Failed to create ZIP archive"
-rm -rf "snag-for-audius-v${VERSION}.${BUILD}"
-cd ..
+# Create the zip archive. manifest.json must sit at the ZIP root for the
+# Chrome Web Store, so zip the contents of the extension directory directly.
+cd "$EXT_DIR" || handle_error "Failed to enter extension directory"
+zip -r "../../$ZIP_NAME" . > /dev/null || handle_error "Failed to create ZIP archive"
+cd - > /dev/null
 
 # Increment build number
 jq --argjson new_build $((BUILD + 1)) '.build = $new_build' version.json > version.tmp
