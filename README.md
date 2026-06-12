@@ -46,6 +46,7 @@ Just click, and you'll have a zip of everything you need.
 ├── package.json        # Node.js dependencies and scripts
 ├── package-lock.json   # Locked dependency versions
 ├── tsconfig.json       # TypeScript configuration
+├── version.json        # Version and build number tracking
 └── build.sh            # Build script
 ```
 
@@ -61,9 +62,11 @@ The project uses a simple bash script for building:
 ./build.sh
 ```
 This script:
-- Cleans the `dist` directory
-- Copies necessary files
-- Prepares the extension for loading
+- Reads version info from `version.json`
+- Cleans `dist/current` and copies extension files there
+- Updates the manifest with the current version number
+- Creates a ZIP archive at `dist/snag-for-audius-vX.Y.Z.zip` (Chrome Web Store-ready format)
+- Increments the build number in `version.json`
 
 
 ### API Integration

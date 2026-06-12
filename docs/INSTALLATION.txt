@@ -3,8 +3,8 @@
 ---
 
 1. **Extract the ZIP**
-   - Unzip the archive. You will get a folder named like `snag-for-audius-v1.x.x`.
-   - Inside, you will find a folder named `extension`.
+   - Unzip the archive. A folder named like `snag-for-audius-v1.x.x.xx` will be created.
+   - The extension files (including `manifest.json`) are at the root of that folder — there is no subfolder.
 
 2. **Open Chrome/Chromium Browser**
    - Ensure you are using a Chromium-based browser (Chrome, Arc, Edge, Brave, etc). 
@@ -15,7 +15,7 @@
 
 4. **Load Unpacked**
    - Click the "Load unpacked" button.
-   - In the file dialog, select the `extension` folder. **Not the parent folder.**
+   - In the file dialog, select the extracted folder (the one containing `manifest.json`).
 
 
 5. **Done!**
